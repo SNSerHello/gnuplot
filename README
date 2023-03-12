@@ -1,4 +1,5 @@
 在MSYS2编译
+============================
 
   pacman -S automake
   pacman -S autoconf 
