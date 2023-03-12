@@ -1,3 +1,17 @@
+在MSYS2编译
+
+  pacman -S automake
+  pacman -S autoconf 
+  pacman -S mingw-w64-x86_64-qt5 
+  pacman -S mingw-w64-x86_64-cairo
+  pacman -S mingw-w64-x86_64-pango
+  pacman -S mingw-w64-x86_64-wxwidgets3.1-msw
+  pacman -S mingw-w64-x86_64-libcerf
+  pacman -S mingw-w64-x86_64-lua
+  pacman -S mingw-w64-x86_64-libcaca
+  ./prepare
+  ./configure --with-qt=qt5 --with-caca
+  make -j2
 
 The Gnuplot Plotting Utility
 ============================
