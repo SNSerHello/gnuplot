@@ -14,6 +14,54 @@
   ./configure --with-qt=qt5 --with-caca
   make -j2
 
+
+在Ubuntu编译
+============================
+
+  sudo apt install \
+    qt5-default \
+    libqt5svg5-dev \
+    qttools5-dev-tools \
+    libcerf-dev \
+    libgd-dev \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libxml2-utils \
+    libwxbase3.0-dev \
+    libwxgtk3.0-gtk3-dev \
+    wx-common \
+    wx3.0-headers \
+    wx3.0-i18n
+
+  
+  wget https://answers.launchpad.net/ubuntu/+archive/primary/+sourcefiles/libgii/1:1.0.2-4ubuntu2/libgii_1.0.2.orig.tar.gz
+  tar xvzf libgii_1.0.2.orig.tar.gz
+  cd libgii-1.0.2
+  ./configure && make -j && sudo make install
+  cd ..
+
+  wget https://master.dl.sourceforge.net/project/ggi/ggi-core/libggi-2.2.2/libggi-2.2.2.src.tar.bz2
+  tar xvf libggi-2.2.2.src.tar.bz2
+  cd libggi-2.2.2
+  ./configure && make -j && sudo make install
+  cd ..
+
+  cd gnuplot
+  ./prepare
+  ./configure \
+    --with-qt=qt5 \
+    --with-ggi \
+    --with-gpic \
+    --with-tgif \
+    --with-metafont \
+    --with-metapost \
+    --with-regis \
+    --with-caca \
+    --with-bitmap-terminals \
+    --enable-function-blocks \
+    && make -j && sudo make install
+
+
 The Gnuplot Plotting Utility
 ============================
 
