@@ -33,7 +33,12 @@
     wx3.0-headers \
     wx3.0-i18n
 
-  
+  wget https://ftp.gnu.org/gnu/libxmi/libxmi-1.2.tar.gz
+  tar xvzf libxmi-1.2.tar.gz
+  cd libxmi-1.2
+  ./configure --target=x86_x64-linux-gnu && make -j && sudo make install
+  cd ..
+
   wget https://answers.launchpad.net/ubuntu/+archive/primary/+sourcefiles/libgii/1:1.0.2-4ubuntu2/libgii_1.0.2.orig.tar.gz
   tar xvzf libgii_1.0.2.orig.tar.gz
   cd libgii-1.0.2
