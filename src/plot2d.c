@@ -1131,7 +1131,8 @@ get_data(struct curve_points *current_plot)
 		    y2 = y1;
 		else
 		    y2 = current_plot->filledcurves_options.at;
-	    } else if (current_plot->plot_filter == FILTER_CONVEX_HULL) {
+	    } else if ((current_plot->plot_filter == FILTER_CONVEX_HULL)
+		   ||  (current_plot->plot_filter == FILTER_CONCAVE_HULL)) {
 		y2 = y1;
 	    } else {
 		y2 = v[2];
@@ -2503,12 +2504,31 @@ eval_plots()
 		    continue;
 		}
 
-		/* "convexhull" is unsmoothed; "smooth convexhull is smoothed */
 		if (equals(c_token, "convexhull")) {
 		    this_plot->plot_filter = FILTER_CONVEX_HULL;
 		    c_token++;
 		    continue;
 		}
+
+#ifdef WITH_CHI_SHAPES
+		if (equals(c_token, "concavehull")) {
+		    this_plot->plot_filter = FILTER_CONCAVE_HULL;
+		    c_token++;
+		    continue;
+		}
+		/* This was added to help debug concave hulls.
+		 * Should we keep and document this as a filter?
+		 */
+		if (equals(c_token, "delaunay")) {
+		    this_plot->plot_filter = FILTER_DELAUNAY;
+		    c_token++;
+		    continue;
+		}
+#endif
+
+		if (this_plot->plot_filter == FILTER_CONVEX_HULL
+		||  this_plot->plot_filter == FILTER_CONCAVE_HULL)
+		    parse_hull_options(this_plot);
 
 		/* deal with smooth */
 		if (almost_equals(c_token, "s$mooth")) {
@@ -2559,10 +2579,6 @@ eval_plots()
 			int_error(c_token, "unrecognized 'smooth' option");
 			break;
 		    }
-
-		    /* Handles "convexhull smooth path expand <scale>" */
-		    if (this_plot->plot_smooth == SMOOTH_PATH)
-			parse_hull_options(this_plot);
 
 		    /* Sanity check - very few smooth options work with polar coords */
 		    if (polar) {
@@ -2657,7 +2673,8 @@ eval_plots()
 		    ||  this_plot->plot_style == FILLSTEPS) {
 			/* read a possible option for 'with filledcurves' */
 			get_filledcurves_style_options(&this_plot->filledcurves_options);
-			if (this_plot->plot_filter == FILTER_CONVEX_HULL)
+			if ((this_plot->plot_filter == FILTER_CONVEX_HULL)
+			||  (this_plot->plot_filter == FILTER_CONCAVE_HULL))
 			    this_plot->filledcurves_options.closeto = FILLEDCURVES_CLOSED;
 		    }
 
@@ -3236,14 +3253,30 @@ eval_plots()
 		}
 		if (this_plot->plot_filter == FILTER_CONVEX_HULL) {
 		    convex_hull(this_plot);
+		    if (this_plot->smooth_parameter != 0)
+			expand_hull(this_plot);
 		}
 		if (this_plot->plot_filter == FILTER_ZSORT) {
 		    zsort_points(this_plot);
 		    zrange_points(this_plot);
 		}
+
 #ifdef USE_POLAR_GRID
 		if (this_plot->plot_style == SURFACEGRID) {
 		    grid_polar_data(this_plot);
+		}
+#endif
+
+#ifdef WITH_CHI_SHAPES
+		if (this_plot->plot_filter == FILTER_CONCAVE_HULL) {
+		    delaunay_triangulation(this_plot);
+		    concave_hull(this_plot);
+		    if (this_plot->smooth_parameter != 0)
+			expand_hull(this_plot);
+		}
+		if (this_plot->plot_filter == FILTER_DELAUNAY) {
+		    delaunay_triangulation(this_plot);
+		    save_delaunay_triangles(this_plot);
 		}
 #endif
 
@@ -3326,8 +3359,6 @@ eval_plots()
 		    mcs_interp(this_plot);
 		    break;
 		case SMOOTH_PATH:
-		    if (this_plot->plot_filter == FILTER_CONVEX_HULL)
-			expand_hull(this_plot);
 		    gen_2d_path_splines(this_plot);
 		    break;
 		case SMOOTH_NONE:
@@ -4110,10 +4141,9 @@ parse_hull_options(struct curve_points *this_plot)
 {
     if (equals(c_token,"expand")) {
 	c_token++;
-	if (this_plot->plot_filter == FILTER_CONVEX_HULL)
+	if ((this_plot->plot_filter == FILTER_CONVEX_HULL)
+	||  (this_plot->plot_filter == FILTER_CONCAVE_HULL))
 	    this_plot->smooth_parameter = real_expression();
-	else
-	    int_error(c_token-2, "'smooth path expand' only available for hulls");
     }
 }
 
