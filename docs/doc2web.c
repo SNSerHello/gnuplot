@@ -149,7 +149,7 @@ header(FILE *a, char * title)
     fprintf(a, "</head>\n");
     fprintf(a, "<body>\n");
     fputs( 
-"<table class=\"center\" style=\"font-size:150%;\" width=\"80%\" >\n"
+"<table class=\"center\" style=\"font-size:150%\">\n"
 "<th class=\"center\"><a href=\"gnuplot6.html\">Credits</a></td>\n"
 "<th class=\"center\"><a href=\"Overview.html\">Overview</a></td>\n"
 "<th class=\"center\"><a href=\"Plotting_Styles.html\">Plotting Styles</a></td>\n"
@@ -452,6 +452,34 @@ process_line(char *line, FILE *b, FILE *d)
 	    }
 	    break;
 	}
+
+    case 'D':		/* Link to figure in demo collection */
+	{		/* D demo_name <n> */
+			/* DB  inserts a break */
+	    char *demo;
+	    int figure = 1;
+
+	    if (line[1] == 'B') {
+		fprintf(b, "<br>\n");
+		break;
+	    }
+	    if (!sscanf(&line[2], "%ms", &demo))
+		break;
+	    sscanf(&line[strlen(demo)+3], "%d", &figure);
+	    fprintf(stderr, "Will include link to %s %d \n", demo, figure);
+
+            if (para) {
+		fprintf(b, "</p>");
+		fprintf(b, "<p align=\"center\">\n");
+		para = FALSE;
+	    }
+	    fprintf(b, "<a href=\"http://gnuplot.info/demo_6.1/%s.html\">\n", demo);
+            fprintf(b, "<img class=\"demo\" src=\"http://gnuplot.info/demo_6.1/%s.%d.png\" ", demo, figure);
+            fprintf(b, "alt=\"%s demo\" \\>\n", demo);
+	    fprintf(b, "</a>\n");
+            break;
+	}
+
     default:{
 	    if (isdigit((int)line[0])) {	/* start of section */
                 int newlevel = line[0]-'0';

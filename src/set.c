@@ -83,6 +83,7 @@ static void set_clip(void);
 static void set_cntrparam(void);
 static void set_cntrlabel(void);
 static void set_contour(void);
+static void set_contourfill(void);
 static void set_cornerpoles(void);
 static void set_dashtype(void);
 static void set_dgrid3d(void);
@@ -264,6 +265,9 @@ set_command()
 	    break;
 	case S_CONTOUR:
 	    set_contour();
+	    break;
+	case S_CONTOURFILL:
+	    set_contourfill();
 	    break;
 	case S_CORNERPOLES:
 	    set_cornerpoles();
@@ -1249,37 +1253,37 @@ set_cntrparam()
     c_token++;
     if (END_OF_COMMAND) {
 	/* assuming same as defaults */
-	contour_pts = DEFAULT_NUM_APPROX_PTS;
-	contour_kind = CONTOUR_KIND_LINEAR;
-	contour_order = DEFAULT_CONTOUR_ORDER;
-	contour_levels = DEFAULT_CONTOUR_LEVELS;
-	contour_levels_kind = LEVELS_AUTO;
-	contour_firstlinetype = 0;
+	contour_params.npoints = DEFAULT_NUM_APPROX_PTS;
+	contour_params.kind = CONTOUR_KIND_LINEAR;
+	contour_params.order = DEFAULT_CONTOUR_ORDER;
+	contour_params.levels = DEFAULT_CONTOUR_LEVELS;
+	contour_params.levels_kind = LEVELS_AUTO;
+	contour_params.firstlinetype = 0;
 	return;
     }
 
     while (!END_OF_COMMAND) {
     if (almost_equals(c_token, "p$oints")) {
 	c_token++;
-	contour_pts = int_expression();
+	contour_params.npoints = int_expression();
     } else if (almost_equals(c_token, "first$linetype")) {
 	c_token++;
-	contour_firstlinetype = int_expression();
+	contour_params.firstlinetype = int_expression();
     } else if (almost_equals(c_token, "sort$ed")) {
 	c_token++;
-	contour_sortlevels = TRUE;
+	contour_params.sortlevels = TRUE;
     } else if (almost_equals(c_token, "unsort$ed")) {
 	c_token++;
-	contour_sortlevels = FALSE;
+	contour_params.sortlevels = FALSE;
     } else if (almost_equals(c_token, "li$near")) {
 	c_token++;
-	contour_kind = CONTOUR_KIND_LINEAR;
+	contour_params.kind = CONTOUR_KIND_LINEAR;
     } else if (almost_equals(c_token, "c$ubicspline")) {
 	c_token++;
-	contour_kind = CONTOUR_KIND_CUBIC_SPL;
+	contour_params.kind = CONTOUR_KIND_CUBIC_SPL;
     } else if (almost_equals(c_token, "b$spline")) {
 	c_token++;
-	contour_kind = CONTOUR_KIND_BSPLINE;
+	contour_params.kind = CONTOUR_KIND_BSPLINE;
     } else if (almost_equals(c_token, "le$vels")) {
 	c_token++;
 
@@ -1293,7 +1297,7 @@ set_cntrparam()
 	 *   so that incremental lists start,incr[,end]
 	 */
 	if (almost_equals(c_token, "di$screte")) {
-	    contour_levels_kind = LEVELS_DISCRETE;
+	    contour_params.levels_kind = LEVELS_DISCRETE;
 	    c_token++;
 	    if (END_OF_COMMAND)
 		int_error(c_token, "expecting discrete level");
@@ -1309,11 +1313,11 @@ set_cntrparam()
 		*(double *)nextfrom_dynarray(&dyn_contour_levels_list) =
 		    real_expression();
 	    }
-	    contour_levels = dyn_contour_levels_list.end;
+	    contour_params.levels = dyn_contour_levels_list.end;
 	} else if (almost_equals(c_token, "in$cremental")) {
 	    int i = 0;  /* local counter */
 
-	    contour_levels_kind = LEVELS_INCREMENTAL;
+	    contour_params.levels_kind = LEVELS_INCREMENTAL;
 	    c_token++;
 	    contour_levels_list[i++] = real_expression();
 	    if (!equals(c_token, ","))
@@ -1331,17 +1335,17 @@ set_cntrparam()
 		 * but 10,10,49 is four
 		 */
 		dyn_contour_levels_list.end = i;
-		contour_levels = (int) ( (real_expression()-contour_levels_list[0])/contour_levels_list[1] + 1.0);
+		contour_params.levels = ( (real_expression()-contour_levels_list[0])/contour_levels_list[1] + 1.0);
 	    }
 	} else if (almost_equals(c_token, "au$to")) {
-	    contour_levels_kind = LEVELS_AUTO;
+	    contour_params.levels_kind = LEVELS_AUTO;
 	    c_token++;
 	    if (!END_OF_COMMAND)
-		contour_levels = int_expression();
+		contour_params.levels = int_expression();
 	} else {
 	    int new = int_expression();
-	    if (contour_levels_kind != LEVELS_DISCRETE)
-		contour_levels = new;
+	    if (contour_params.levels_kind != LEVELS_DISCRETE)
+		contour_params.levels = new;
 	}
     } else if (almost_equals(c_token, "o$rder")) {
 	int order;
@@ -1349,7 +1353,7 @@ set_cntrparam()
 	order = int_expression();
 	if ( order < 2 || order > MAX_BSPLINE_ORDER )
 	    int_error(c_token, "bspline order must be in [2..10] range.");
-	contour_order = order;
+	contour_params.order = order;
     } else
 	int_error(c_token, "expecting 'linear', 'cubicspline', 'bspline', 'points', 'levels' or 'order'");
     }
@@ -1361,7 +1365,7 @@ set_cntrlabel()
 {
     c_token++;
     if (END_OF_COMMAND) {
-	strcpy(contour_format, "%8.3g");
+	strcpy(contour_params.format, "%8.3g");
 	clabel_onecolor = FALSE;
 	return;
     }
@@ -1370,7 +1374,7 @@ set_cntrlabel()
 	    char *new;
 	    c_token++;
 	    if ((new = try_to_get_string()))
-		safe_strncpy(contour_format,new,sizeof(contour_format));
+		safe_strncpy(contour_params.format,new,sizeof(contour_params.format));
 	    free(new);
 	} else if (equals(c_token, "font")) {
 	    char *newfont;
@@ -1416,6 +1420,52 @@ set_contour()
 	    int_error(c_token, "expecting 'base', 'surface', or 'both'");
 	c_token++;
     }
+}
+
+/* Determine criteria for choosing zslice boundaries
+ * during "splot with contourfill"
+ */
+void
+set_contourfill(void)
+{
+    int temp;
+
+    c_token++;
+    if (equals(c_token, "auto")) {
+	c_token++;
+	contourfill.mode = CFILL_AUTO;
+	temp = int_expression();
+	cliptorange(temp,1,MAX_ZSLICES);
+	contourfill.nslices = temp;
+
+    } else if (equals(c_token, "ztics")) {
+	c_token++;
+	contourfill.mode = CFILL_ZTICS;
+	contourfill.tic_level = 0;
+	if (equals(c_token, "level")) {
+	    c_token++;
+	    contourfill.tic_level = int_expression();
+	}
+
+    } else if (equals(c_token, "cbtics")) {
+	c_token++;
+	contourfill.mode = CFILL_CBTICS;
+	contourfill.tic_level = 0;
+	if (equals(c_token, "level")) {
+	    c_token++;
+	    contourfill.tic_level = int_expression();
+	}
+
+    } else if (almost_equals(c_token, "pal$ette")) {
+	c_token++;
+	contourfill.firstlinetype = -1;
+
+    } else if (almost_equals(c_token, "first$linetype")) {
+	c_token++;
+	contourfill.firstlinetype = int_expression();
+
+    } else
+	int_error(c_token, "Unrecognized option");
 }
 
 /* process 'set colorsequence command */

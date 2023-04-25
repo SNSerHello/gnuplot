@@ -1370,6 +1370,7 @@ get_data(struct curve_points *current_plot)
 
 	/* These exist for 3D (splot) but not for 2D (plot) */
 	case PM3DSURFACE:
+	case CONTOURFILL:
 	case ZERRORFILL:
 	case ISOSURFACE:
 	    int_error(NO_CARET, "This plot style only available for splot");
@@ -3244,6 +3245,11 @@ eval_plots()
 			goto SKIPPED_EMPTY_FILE;
 		    }
 		}
+
+		/* The file was not really empty, but "plot with table" bypasses  */
+		/* filters, smoothing, range checks, and graphics, so we're done. */
+		if (this_plot->plot_style == TABLESTYLE)
+		    goto SKIPPED_EMPTY_FILE;
 
 		/* Jan 2022: Filter operations are performed immediately after
 		 * reading in the data, before any smoothing.
